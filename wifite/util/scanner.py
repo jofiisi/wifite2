@@ -8,6 +8,12 @@ from ..model.target import Target, WPSState
 from ..config import Configuration
 
 from time import sleep, time
+import RPi.GPIO as GPIO
+
+GPIO.setMode(GPIO.BCM)
+
+GPIO.setup(17, GPIO.IN)
+GPIO.setup(27, GPIO.IN)
 
 class Scanner(object):
     ''' Scans wifi networks & provides menu for selecting targets '''
@@ -166,61 +172,14 @@ class Scanner(object):
         return int(columns)
 
     def select_targets(self):
-        '''
-        Returns list(target)
-        Either a specific target if user specified -bssid or --essid.
-        Otherwise, prompts user to select targets and returns the selection.
-        '''
-
-        if self.target:
-            # When user specifies a specific target
-            return [self.target]
-
-        if len(self.targets) == 0:
-            if self.err_msg is not None:
-                Color.pl(self.err_msg)
-
-            # TODO Print a more-helpful reason for failure.
-            # 1. Link to wireless drivers wiki,
-            # 2. How to check if your device supporst monitor mode,
-            # 3. Provide airodump-ng command being executed.
-            raise Exception('No targets found.'
-                + ' You may need to wait longer,'
-                + ' or you may have issues with your wifi card')
-
-        # Return all targets if user specified a wait time ('pillage').
-        if Configuration.scan_time > 0:
-            return self.targets
-
-        # Ask user for targets.
-        self.print_targets()
-        Color.clear_entire_line()
-
-        if self.err_msg is not None:
-            Color.pl(self.err_msg)
-
-        input_str  = '{+} select target(s)'
-        input_str += ' ({G}1-%d{W})' % len(self.targets)
-        input_str += ' separated by commas, dashes'
-        input_str += ' or {G}all{W}: '
-
-        chosen_targets = []
-
-        for choice in raw_input(Color.s(input_str)).split(','):
-            choice = choice.strip()
-            if choice.lower() == 'all':
-                chosen_targets = self.targets
-                break
-            if '-' in choice:
-                # User selected a range
-                (lower,upper) = [int(x) - 1 for x in choice.split('-')]
-                for i in xrange(lower, min(len(self.targets), upper + 1)):
-                    chosen_targets.append(self.targets[i])
-            elif choice.isdigit():
-                choice = int(choice) - 1
-                chosen_targets.append(self.targets[choice])
-
-        return chosen_targets
+        sN = 0
+        sC = False;
+        while sC == False:
+            if GPIO.input(17) == 1:
+                sN= sN +1
+            if GPIO.input(27) == 1:
+                sC = True
+        return sN
 
 
 if __name__ == '__main__':
