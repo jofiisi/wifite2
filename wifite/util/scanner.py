@@ -10,10 +10,32 @@ from ..config import Configuration
 from time import sleep, time
 import RPi.GPIO as GPIO
 
-GPIO.setMode(GPIO.BCM)
+import Adafruit_GPIO.SPI as SPI
+import Adafruit_SSD1306
+
+
+import subprocess
+RST = None
+
+disp = Adafruit_SSD1306.SSD1306_128_32(rst=RST)
+
+disp.begin()
+
+disp.clear()
+disp.display()
+
+width = disp.width
+height = disp.height
+image = Image.new('1', (width, height))
+
+GPIO.setmode(GPIO.BCM)
 
 GPIO.setup(17, GPIO.IN)
 GPIO.setup(27, GPIO.IN)
+GPIO.setup(22, GPIO.IN)
+GPIO.setup(10, GPIO.IN)
+
+
 
 class Scanner(object):
     ''' Scans wifi networks & provides menu for selecting targets '''
@@ -58,7 +80,6 @@ class Scanner(object):
                             target.decloaked = True
 
                     self.print_targets()
-
                     target_count = len(self.targets)
                     client_count = sum(len(t.clients) for t in self.targets)
 
@@ -76,6 +97,13 @@ class Scanner(object):
                         return
 
                     sleep(1)
+
+                    draw.text((0, 0), "Hallo Jonas" ,font=font , fill=128)
+
+                    disp.image(image)
+                    disp.display()
+                    if GPIO.input(10) == 1:
+                        break
 
         except KeyboardInterrupt:
             pass
@@ -172,14 +200,78 @@ class Scanner(object):
         return int(columns)
 
     def select_targets(self):
+        '''
+        Returns list(target)
+        Either a specific target if user specified -bssid or --essid.
+        Otherwise, prompts user to select targets and returns the selection.
+        '''
+
+        if self.target:
+            # When user specifies a specific target
+            return [self.target]
+
+        if len(self.targets) == 0:
+            if self.err_msg is not None:
+                Color.pl(self.err_msg)
+
+            # TODO Print a more-helpful reason for failure.
+            # 1. Link to wireless drivers wiki,
+            # 2. How to check if your device supporst monitor mode,
+            # 3. Provide airodump-ng command being executed.
+            raise Exception('No targets found.'
+                + ' You may need to wait longer,'
+                + ' or you may have issues with your wifi card')
+
+        # Return all targets if user specified a wait time ('pillage').
+        if Configuration.scan_time > 0:
+            return self.targets
+
+        # Ask user for targets.
+        self.print_targets()
+        Color.clear_entire_line()
+
+        if self.err_msg is not None:
+            Color.pl(self.err_msg)
+
+
+
         sN = 0
-        sC = False;
-        while sC == False:
+        sC = False
+        while sC != True:
             if GPIO.input(17) == 1:
-                sN= sN +1
+                sleep(0.3)
+                if GPIO.input(17) == 0:
+                    sN = sN + 1
+                    print(sN)
+            if GPIO.input(22) == 1:
+                sleep(0.3)
+                if GPIO.input(22) == 0:
+                    sN = sN - 1
+                    print(sN)
+                
             if GPIO.input(27) == 1:
-                sC = True
-        return sN
+                sC = True  
+                sNF  =  str(sN)
+
+        chosen_targets = []
+
+
+        for choice in sNF.split(','):
+            choice = choice.strip()
+            print (choice)
+            if choice.lower() == 'all':
+                chosen_targets = self.targets
+                break
+            if '-' in choice:
+                # User selected a range
+                (lower,upper) = [int(x) - 1 for x in choice.split('-')]
+                for i in xrange(lower, min(len(self.targets), upper + 1)):
+                    chosen_targets.append(self.targets[i])
+            elif choice.isdigit():
+                choice = int(choice) - 1
+                chosen_targets.append(self.targets[choice])
+
+        return chosen_targets
 
 
 if __name__ == '__main__':
