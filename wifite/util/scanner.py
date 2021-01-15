@@ -13,7 +13,9 @@ import RPi.GPIO as GPIO
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_SSD1306
 
-
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
 import subprocess
 RST = None
 
@@ -27,6 +29,8 @@ disp.display()
 width = disp.width
 height = disp.height
 image = Image.new('1', (width, height))
+draw = ImageDraw.Draw(image)
+
 
 GPIO.setmode(GPIO.BCM)
 
@@ -34,6 +38,8 @@ GPIO.setup(17, GPIO.IN)
 GPIO.setup(27, GPIO.IN)
 GPIO.setup(22, GPIO.IN)
 GPIO.setup(10, GPIO.IN)
+font = ImageFont.load_default()
+
 
 
 
@@ -95,10 +101,9 @@ class Scanner(object):
 
                     if max_scan_time > 0 and time() > scan_start_time + max_scan_time:
                         return
-
                     sleep(1)
-
-                    draw.text((0, 0), "Hallo Jonas" ,font=font , fill=128)
+                    draw.text((0, 0), " ",font=font , fill=128)
+                    
 
                     disp.image(image)
                     disp.display()
