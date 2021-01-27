@@ -8,9 +8,6 @@ except (ValueError, ImportError) as e:
 
 from .util.color import Color
 
-import os
-import sys
-
 
 class Wifite(object):
 
@@ -82,6 +79,8 @@ class Wifite(object):
         attacked_targets = AttackAll.attack_multiple(targets)
 
         Color.pl('{+} Finished attacking {C}%d{W} target(s), exiting' % attacked_targets)
+
+
 
 
 ##############################################################

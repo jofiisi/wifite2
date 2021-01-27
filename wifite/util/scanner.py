@@ -10,37 +10,11 @@ from ..config import Configuration
 from time import sleep, time
 import RPi.GPIO as GPIO
 
-import Adafruit_GPIO.SPI as SPI
-import Adafruit_SSD1306
-
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
-import subprocess
-RST = None
-
-disp = Adafruit_SSD1306.SSD1306_128_32(rst=RST)
-
-disp.begin()
-
-disp.clear()
-disp.display()
-
-width = disp.width
-height = disp.height
-image = Image.new('1', (width, height))
-draw = ImageDraw.Draw(image)
-
-
 GPIO.setmode(GPIO.BCM)
 
-GPIO.setup(17, GPIO.IN)
-GPIO.setup(27, GPIO.IN)
-GPIO.setup(22, GPIO.IN)
-GPIO.setup(10, GPIO.IN)
-font = ImageFont.load_default()
-
-
+GPIO.setup(21, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+GPIO.setup(20, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+GPIO.setup(16, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 
 class Scanner(object):
@@ -102,12 +76,8 @@ class Scanner(object):
                     if max_scan_time > 0 and time() > scan_start_time + max_scan_time:
                         return
                     sleep(1)
-                    draw.text((0, 0), " ",font=font , fill=128)
-                    
 
-                    disp.image(image)
-                    disp.display()
-                    if GPIO.input(10) == 1:
+                    if GPIO.input(20) == 1:
                         break
 
         except KeyboardInterrupt:
@@ -243,18 +213,18 @@ class Scanner(object):
         sN = 0
         sC = False
         while sC != True:
-            if GPIO.input(17) == 1:
+            if GPIO.input(21) == 1:
                 sleep(0.3)
-                if GPIO.input(17) == 0:
+                if GPIO.input(21) == 0:
                     sN = sN + 1
                     print(sN)
-            if GPIO.input(22) == 1:
+            if GPIO.input(16) == 1:
                 sleep(0.3)
-                if GPIO.input(22) == 0:
+                if GPIO.input(16) == 0:
                     sN = sN - 1
                     print(sN)
                 
-            if GPIO.input(27) == 1:
+            if GPIO.input(20) == 1:
                 sC = True  
                 sNF  =  str(sN)
 
